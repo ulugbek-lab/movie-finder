@@ -1,710 +1,903 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logistique Spatiale</title>
+    <title>Stellar Logistics</title>
     <style>
         body {
             margin: 0;
+            padding: 0;
             overflow: hidden;
-            font-family: 'Orbitron', 'Arial', sans-serif;
-            color: #fff;
+            font-family: 'Arial', sans-serif;
             background-color: #000;
+            color: #fff;
         }
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap');
-        #info {
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #30cfd0;
-            box-shadow: 0 0 20px #30cfd0;
-            z-index: 100;
-            width: 320px;
-            backdrop-filter: blur(5px);
-        }
-        #controls {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #30cfd0;
-            box-shadow: 0 0 20px #30cfd0;
-            z-index: 100;
-            max-width: 400px;
-            backdrop-filter: blur(5px);
-        }
-        .planet-btn {
-            margin: 6px;
-            padding: 10px 18px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid;
-            border-radius: 20px;
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 0 0 10px;
-            transition: all 0.3s;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 500;
-            letter-spacing: 1px;
-        }
-        .planet-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 20px;
-        }
-        .planet-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-        }
-        #route {
-            margin-top: 15px;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.7);
             padding: 10px;
-            background: rgba(10, 20, 30, 0.7);
-            border-radius: 8px;
-            border: 1px solid rgba(48, 207, 208, 0.3);
-        }
-        h1, h2 {
-            margin: 5px 0;
-            text-shadow: 0 0 10px #30cfd0;
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 2px;
-        }
-        #reset {
-            margin-top: 15px;
-            padding: 10px 20px;
-            background: rgba(150, 20, 20, 0.7);
-            border: 1px solid #ff3030;
-            border-radius: 20px;
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 0 0 10px #ff3030;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 500;
-            letter-spacing: 1px;
-            transition: all 0.3s;
-        }
-        #reset:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px #ff3030;
-        }
-        #complete {
-            margin-top: 15px;
-            margin-left: 10px;
-            padding: 10px 20px;
-            background: rgba(20, 150, 20, 0.7);
-            border: 1px solid #30ff30;
-            border-radius: 20px;
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 0 0 10px #30ff30;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 500;
-            letter-spacing: 1px;
-            transition: all 0.3s;
-        }
-        #complete:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px #30ff30;
-        }
-        .glow {
-            text-shadow: 0 0 10px currentColor;
-        }
-        .stats-value {
-            color: #30cfd0;
-            font-weight: bold;
-            text-shadow: 0 0 5px #30cfd0;
-        }
-        #route-list {
-            padding-left: 25px;
-        }
-        #route-list li {
-            margin: 5px 0;
-        }
-        #result-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 200;
-            justify-content: center;
-            align-items: center;
-        }
-        #result-content {
-            background: rgba(10, 20, 30, 0.9);
-            padding: 30px;
-            border-radius: 15px;
-            border: 2px solid #30cfd0;
-            box-shadow: 0 0 30px #30cfd0;
-            width: 500px;
-            max-width: 80%;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-        .result-title {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #fff;
-            text-shadow: 0 0 15px #30cfd0;
-        }
-        .result-stats {
-            margin: 15px 0;
-            font-size: 18px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .result-label {
-            text-align: left;
-        }
-        .result-value {
-            text-align: right;
-            color: #30cfd0;
-            font-weight: bold;
-            text-shadow: 0 0 5px #30cfd0;
-        }
-        #success-rate {
-            font-size: 36px;
-            margin: 20px 0;
-            color: #30ff30;
-            text-shadow: 0 0 15px #30ff30;
-        }
-        #close-result {
-            margin-top: 20px;
-            padding: 12px 25px;
-            background: rgba(20, 120, 120, 0.7);
-            border: 1px solid #30cfd0;
-            border-radius: 25px;
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 0 0 15px #30cfd0;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 500;
-            font-size: 16px;
-            letter-spacing: 2px;
-            transition: all 0.3s;
-        }
-        #close-result:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 25px #30cfd0;
-        }
-        #planet-info {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #30cfd0;
-            box-shadow: 0 0 20px #30cfd0;
-            z-index: 100;
+            border-radius: 5px;
             max-width: 300px;
+        }
+        #fuelDisplay {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            border: none;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #34495e;
+        }
+        button:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+        }
+        #pathOptions {
+            margin-top: 10px;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
             display: none;
-            backdrop-filter: blur(5px);
+            z-index: 20;
+            max-width: 500px;
         }
-        #planet-name {
-            margin-top: 0;
-            margin-bottom: 5px;
+        h2 {
+            color: #3498db;
         }
-        .used-path {
-            opacity: 0.2;
-            pointer-events: none;
+        #gameOver button {
+            background-color: #2980b9;
+            font-size: 16px;
+            padding: 10px 20px;
         }
     </style>
 </head>
 <body>
-    <div id="info">
-        <h1>Logistique Spatiale</h1>
-        <p>Carburant: <span id="fuel" class="stats-value">1000</span> unités</p>
-        <p>Position actuelle: <span id="current-position" class="stats-value">Base Stellaire</span></p>
-        <div id="route">
-            <h2>Route actuelle:</h2>
-            <ol id="route-list">
-                <li>Base Stellaire</li>
-            </ol>
+    <div id="gameContainer">
+        <div id="ui">
+            <h2>Stellar Logistics</h2>
+            <div id="fuelDisplay">Fuel Remaining: 1000</div>
+            <div id="currentPosition">Current: Start Base</div>
+            <div id="visitedPlanets">Planets Visited: 0/6</div>
+            <div id="pathOptions"></div>
         </div>
-        <button id="reset">Réinitialiser</button>
-        <button id="complete">Terminer la mission</button>
-    </div>
-    
-    <div id="controls">
-        <h2>Destinations disponibles:</h2>
-        <div id="planet-buttons"></div>
-    </div>
-
-    <div id="planet-info">
-        <h2 id="planet-name">Nom de la planète</h2>
-        <p id="planet-description">Description de la planète...</p>
-    </div>
-
-    <div id="result-modal">
-        <div id="result-content">
-            <h2 class="result-title">Mission Accomplie!</h2>
-            
-            <div class="result-stats">
-                <span class="result-label">Carburant utilisé:</span>
-                <span id="used-fuel" class="result-value">0</span>
+        <div id="gameOver">
+            <h2>Mission Complete!</h2>
+            <div id="results">
+                <p>Your fuel usage: <span id="playerFuel">0</span></p>
+                <p>Optimal fuel usage: <span id="optimalFuel">0</span></p>
+                <p>Efficiency rating: <span id="efficiency">0%</span></p>
             </div>
-            
-            <div class="result-stats">
-                <span class="result-label">Chemin optimal:</span>
-                <span id="optimal-fuel" class="result-value">0</span>
-            </div>
-            
-            <div class="result-stats">
-                <span class="result-label">Planètes visitées:</span>
-                <span id="planets-visited" class="result-value">0</span>
-            </div>
-            
-            <h3 id="success-rate">0%</h3>
-            
-            <button id="close-result">CONTINUER</button>
+            <button id="restartButton">Start New Mission</button>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- NOTE: Using Three.js r128 which doesn't have CapsuleGeometry - we use CylinderGeometry instead -->
     <script>
-        // Configuration du jeu
-        const PLANETS = [
-            { 
-                name: "Base Stellaire", 
-                color: 0xffffff, 
-                position: new THREE.Vector3(0, 0, 0), 
-                size: 8,
-                description: "Point de départ et d'arrivée. Une station spatiale équipée des technologies les plus avancées."
-            },
-            { 
-                name: "Néonova", 
-                color: 0xff1493, 
-                position: new THREE.Vector3(50, 5, -30), 
-                size: 12,
-                description: "Planète aux couleurs vives et à l'atmosphère riche en gaz nobles. Sa surface brille de mille feux."
-            },
-            { 
-                name: "Azuron", 
-                color: 0x00ffff, 
-                position: new THREE.Vector3(-45, -7, -60), 
-                size: 15,
-                description: "Un monde océanique gelé aux profondeurs abyssales. Des cristaux bleus recouvrent sa surface."
-            },
-            { 
-                name: "Viridia", 
-                color: 0x00ff00, 
-                position: new THREE.Vector3(70, -20, 40), 
-                size: 18,
-                description: "Planète luxuriante couverte de végétation exotique et aux écosystèmes complexes."
-            },
-            { 
-                name: "Aurelium", 
-                color: 0xffd700, 
-                position: new THREE.Vector3(-65, 32, 15), 
-                size: 10,
-                description: "Monde minier riche en minéraux précieux. Sa surface dorée reflète la lumière des étoiles."
-            },
-            { 
-                name: "Crimsonite", 
-                color: 0xff4500, 
-                position: new THREE.Vector3(30, 50, 80), 
-                size: 16,
-                description: "Planète volcanique en constante éruption. Sa surface est parsemée de rivières de lave ardente."
-            },
-            { 
-                name: "Violetta", 
-                color: 0x9400d3, 
-                position: new THREE.Vector3(-80, -45, 65), 
-                size: 14,
-                description: "Monde mystérieux enveloppé d'une brume violette. Son atmosphère contient des particules énergétiques inconnues."
+        // Game variables
+        const TOTAL_PLANETS = 6;
+        const START_FUEL = 1000;
+        let currentFuel = START_FUEL;
+        let currentPlanet = 'Start Base';
+        let visitedPlanets = new Set();
+        let usedPaths = new Set(); // Tracks used paths
+        let gameActive = true;
+        let planets = {};
+        let optimalPath = null;
+        
+        // Planet data
+        const planetData = {
+            'Start Base': { color: 0xFFFFFF, size: 15, position: { x: 0, y: 0, z: 0 } },
+            'Neonyx': { color: 0x00FFFF, size: 30, position: { x: -150, y: 30, z: -120 } },
+            'Crimsonova': { color: 0xFF5555, size: 40, position: { x: 200, y: -20, z: 150 } },
+            'Emeraldian': { color: 0x55FF55, size: 25, position: { x: -100, y: 50, z: 200 } },
+            'Aurorion': { color: 0xFF55FF, size: 35, position: { x: 170, y: -40, z: -180 } },
+            'Cobaltrix': { color: 0x5555FF, size: 45, position: { x: -200, y: -30, z: -50 } },
+            'Solarium': { color: 0xFFFF55, size: 50, position: { x: 50, y: 60, z: -220 } }
+        };
+
+        // Create distances between planets
+        const distances = {};
+        
+        // Calculate distances between planets
+        function calculateDistances() {
+            const planetNames = Object.keys(planetData);
+            
+            for (let i = 0; i < planetNames.length; i++) {
+                distances[planetNames[i]] = {};
+                
+                for (let j = 0; j < planetNames.length; j++) {
+                    if (i !== j) {
+                        const p1 = planetData[planetNames[i]].position;
+                        const p2 = planetData[planetNames[j]].position;
+                        
+                        // Calculate Euclidean distance
+                        const distance = Math.sqrt(
+                            Math.pow(p1.x - p2.x, 2) + 
+                            Math.pow(p1.y - p2.y, 2) + 
+                            Math.pow(p1.z - p2.z, 2)
+                        );
+                        
+                        // Fuel cost is distance divided by 2
+                        distances[planetNames[i]][planetNames[j]] = Math.round(distance / 2);
+                    }
+                }
             }
-        ];
-        
-        // Variables du jeu
-        let fuel = 1000;
-        let currentPlanetIndex = 0;
-        let visitedPlanets = [0]; // Base Stellaire est le point de départ
-        let visitedPaths = new Set(); // Ensemble des chemins déjà empruntés
-        let scene, camera, renderer, ship, planets = [], starField = [], debris = [], pirateShips = [], paths = [];
-        let targetPosition = PLANETS[0].position.clone();
-        let moving = false;
-        let shipRotation = 0;
-        let landingMode = false;
-        let landingPoint = new THREE.Vector3();
-        let landingProgress = 0;
-        let landingSpeed = 0.01;
-        let optimalFuelUsage = 0;
-        
-        // Initialisation de Three.js
-        function init() {
-            // Création de la scène
-            scene = new THREE.Scene();
-            
-            // Ajout d'un fond stellaire
-            const spaceTexture = new THREE.CubeTextureLoader().load([
-                generateSpaceBackground(),
-                generateSpaceBackground(),
-                generateSpaceBackground(),
-                generateSpaceBackground(),
-                generateSpaceBackground(),
-                generateSpaceBackground()
-            ]);
-            scene.background = spaceTexture;
-            
-            // Création de la caméra
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 20, 50);
-            camera.lookAt(0, 0, 0);
-            
-            // Création du renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.body.appendChild(renderer.domElement);
-            
-            // Lumière ambiante
-            const ambientLight = new THREE.AmbientLight(0x202020);
-            scene.add(ambientLight);
-            
-            // Lumière directionnelle
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(50, 50, 50);
-            directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048;
-            directionalLight.shadow.mapSize.height = 2048;
-            directionalLight.shadow.camera.near = 0.5;
-            directionalLight.shadow.camera.far = 500;
-            directionalLight.shadow.camera.left = -100;
-            directionalLight.shadow.camera.right = 100;
-            directionalLight.shadow.camera.top = 100;
-            directionalLight.shadow.camera.bottom = -100;
-            scene.add(directionalLight);
-            
-            // Création du vaisseau spatial
-            createMillenniumFalcon();
-            
-            // Création des planètes
-            createPlanets();
-            
-            // Création du champ d'étoiles
-            createStarField();
-            
-            // Création des débris spatiaux
-            createDebris();
-            
-            // Création des vaisseaux pirates
-            createPirateShips();
-            
-            // Calcul du parcours optimal
-            calculateOptimalRoute();
-            
-            // Gestionnaire de redimensionnement
-            window.addEventListener('resize', onWindowResize);
-            
-            // Initialisation des boutons de planètes
-            updatePlanetButtons();
-            
-            // Initialisation des boutons de réinitialisation et de fin
-            document.getElementById('reset').addEventListener('click', resetGame);
-            document.getElementById('complete').addEventListener('click', completeRoute);
-            document.getElementById('close-result').addEventListener('click', closeResultModal);
-            
-            // Animation
-            animate();
         }
         
-        // Génération de texture pour le fond stellaire
-        function generateSpaceBackground() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 1024;
-            const ctx = canvas.getContext('2d');
+        // Function to find optimal path (using brute force for small problem)
+        function findOptimalPath() {
+            const planetNames = Object.keys(planetData).filter(name => name !== 'Start Base');
             
-            // Fond noir
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Generate all permutations of planets
+            function permute(arr, start = 0) {
+                if (start === arr.length - 1) {
+                    return [arr.slice()];
+                }
+                
+                let result = [];
+                for (let i = start; i < arr.length; i++) {
+                    [arr[start], arr[i]] = [arr[i], arr[start]];
+                    result = result.concat(permute(arr, start + 1));
+                    [arr[start], arr[i]] = [arr[i], arr[start]]; // backtrack
+                }
+                
+                return result;
+            }
             
-            // Étoiles
-            for (let i = 0; i < 300; i++) {
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                const radius = Math.random() * 2;
-                const opacity = Math.random() * 0.8 + 0.2;
+            const permutations = permute(planetNames);
+            let minFuel = Infinity;
+            let bestPath = null;
+            
+            // Evaluate each permutation
+            for (const perm of permutations) {
+                let fuel = 0;
+                let currentLocation = 'Start Base';
                 
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-                ctx.fill();
+                // Calculate fuel for this path
+                for (const planet of perm) {
+                    fuel += distances[currentLocation][planet];
+                    currentLocation = planet;
+                }
                 
-                // Lueur pour certaines étoiles
-                if (Math.random() > 0.7) {
-                    ctx.beginPath();
-                    ctx.arc(x, y, radius * 4, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
-                    ctx.fill();
+                // Add return to start base
+                fuel += distances[currentLocation]['Start Base'];
+                
+                // Update if this is better
+                if (fuel < minFuel) {
+                    minFuel = fuel;
+                    bestPath = ['Start Base', ...perm, 'Start Base'];
                 }
             }
             
-            // Nébuleuses
-            for (let i = 0; i < 5; i++) {
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                const radius = Math.random() * 200 + 100;
-                const color = Math.random() > 0.5 ? 
-                    `rgba(${Math.random() * 100 + 50}, ${Math.random() * 100 + 50}, ${Math.random() * 200 + 55}, 0.1)` : 
-                    `rgba(${Math.random() * 100 + 155}, ${Math.random() * 100 + 50}, ${Math.random() * 100 + 50}, 0.1)`;
-                
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = color;
-                ctx.fill();
-            }
-            
-            return canvas.toDataURL();
+            return { path: bestPath, fuel: minFuel };
         }
-        
-        // Création du Faucon Millennium
-        function createMillenniumFalcon() {
-            const shipGroup = new THREE.Group();
+
+        // Three.js setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('gameContainer').appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x333333);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 3, 5);
+        scene.add(directionalLight);
+
+        // Create stars
+        function createStars() {
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 1,
+                sizeAttenuation: false
+            });
+
+            const starsVertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                starsVertices.push(x, y, z);
+            }
+
+            starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(stars);
+        }
+
+        // Create space debris
+        function createDebris() {
+            for (let i = 0; i < 100; i++) {
+                const geometry = new THREE.TetrahedronGeometry(Math.random() * 3 + 1, 0);
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x888888,
+                    roughness: 0.8,
+                    metalness: 0.2
+                });
+                const debris = new THREE.Mesh(geometry, material);
+                
+                // Position debris randomly in space
+                debris.position.set(
+                    (Math.random() - 0.5) * 1000,
+                    (Math.random() - 0.5) * 1000,
+                    (Math.random() - 0.5) * 1000
+                );
+                
+                // Random rotation
+                debris.rotation.set(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                );
+                
+                scene.add(debris);
+            }
+        }
+
+        // Create pirate ships
+        function createPirateShips() {
+            for (let i = 0; i < 10; i++) {
+                // Ship body
+                const body = new THREE.Group();
+                
+                // Main hull - using CylinderGeometry instead of CapsuleGeometry
+                const hullGeometry = new THREE.CylinderGeometry(3, 3, 10, 12);
+                const hullMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x333333,
+                    roughness: 0.7,
+                    metalness: 0.3
+                });
+                const hull = new THREE.Mesh(hullGeometry, hullMaterial);
+                hull.rotation.z = Math.PI / 2;
+                body.add(hull);
+                
+                // Wings
+                const wingGeometry = new THREE.BoxGeometry(10, 1, 3);
+                const wingMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x444444,
+                    roughness: 0.6,
+                    metalness: 0.4
+                });
+                const wing = new THREE.Mesh(wingGeometry, wingMaterial);
+                wing.position.y = -1;
+                body.add(wing);
+                
+                // Cockpit
+                const cockpitGeometry = new THREE.SphereGeometry(2, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+                const cockpitMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x990000,
+                    roughness: 0.2,
+                    metalness: 0.8
+                });
+                const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+                cockpit.position.set(3, 0, 0);
+                cockpit.rotation.z = Math.PI / 2;
+                body.add(cockpit);
+                
+                // Position ship randomly in space
+                body.position.set(
+                    (Math.random() - 0.5) * 800,
+                    (Math.random() - 0.5) * 800,
+                    (Math.random() - 0.5) * 800
+                );
+                
+                // Random rotation
+                body.rotation.set(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                );
+                
+                scene.add(body);
+            }
+        }
+
+        // Create the Millennium Falcon-like ship
+        function createPlayerShip() {
+            const ship = new THREE.Group();
             
-            // Corps principal (disque)
-            const bodyGeometry = new THREE.CylinderGeometry(2.5, 2.5, 0.8, 16);
-            const bodyMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xb0b0b0, 
-                shininess: 50,
-                flatShading: true
+            // Main body - flattened disk
+            const bodyGeometry = new THREE.CylinderGeometry(10, 10, 3, 16);
+            const bodyMaterial = new THREE.MeshStandardMaterial({
+                color: 0xcccccc,
+                roughness: 0.7,
+                metalness: 0.5
             });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
             body.rotation.x = Math.PI / 2;
-            shipGroup.add(body);
+            ship.add(body);
             
-            // Cockpit (côté droit du disque)
-            const cockpitGeometry = new THREE.CylinderGeometry(0.7, 0.7, 0.8, 8);
-            const cockpitMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x888888, 
-                shininess: 100 
+            // Front mandibles
+            const mandibleGeometry = new THREE.BoxGeometry(15, 2, 4);
+            const mandibleMaterial = new THREE.MeshStandardMaterial({
+                color: 0xaaaaaa,
+                roughness: 0.6,
+                metalness: 0.4
+            });
+            
+            const leftMandible = new THREE.Mesh(mandibleGeometry, mandibleMaterial);
+            leftMandible.position.set(8, 0, -5);
+            leftMandible.rotation.y = Math.PI / 12;
+            ship.add(leftMandible);
+            
+            const rightMandible = new THREE.Mesh(mandibleGeometry, mandibleMaterial);
+            rightMandible.position.set(8, 0, 5);
+            rightMandible.rotation.y = -Math.PI / 12;
+            ship.add(rightMandible);
+            
+            // Cockpit
+            const cockpitGeometry = new THREE.SphereGeometry(3, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+            const cockpitMaterial = new THREE.MeshStandardMaterial({
+                color: 0x5555ff,
+                roughness: 0.2,
+                metalness: 0.8
             });
             const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
-            cockpit.position.set(2.2, 0, 0);
-            cockpit.rotation.x = Math.PI / 2;
-            shipGroup.add(cockpit);
+            cockpit.position.set(0, 2, 5);
+            cockpit.rotation.x = -Math.PI / 2;
+            ship.add(cockpit);
             
-            // Cockpit vitres
-            const cockpitWindowGeometry = new THREE.SphereGeometry(0.5, 8, 8, 0, Math.PI);
-            const cockpitWindowMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x3366ff, 
-                shininess: 150,
-                transparent: true,
-                opacity: 0.7
+            // Rear engine glow
+            const engineGlowGeometry = new THREE.RingGeometry(2, 4, 16);
+            const engineGlowMaterial = new THREE.MeshBasicMaterial({
+                color: 0x55aaff,
+                side: THREE.DoubleSide
             });
-            const cockpitWindow = new THREE.Mesh(cockpitWindowGeometry, cockpitWindowMaterial);
-            cockpitWindow.position.set(2.7, 0, 0);
-            cockpitWindow.rotation.y = Math.PI / 2;
-            shipGroup.add(cockpitWindow);
+            const engineGlow = new THREE.Mesh(engineGlowGeometry, engineGlowMaterial);
+            engineGlow.position.set(-10, 0, 0);
+            engineGlow.rotation.y = Math.PI / 2;
+            ship.add(engineGlow);
             
-            // Mandibules (avant du vaisseau)
-            const mandibleGeometry = new THREE.BoxGeometry(3, 0.8, 0.6);
-            const mandibleMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xa0a0a0, 
-                shininess: 50 
+            // Radar dish
+            const radarGeometry = new THREE.CylinderGeometry(2, 2, 0.5, 16);
+            const radarMaterial = new THREE.MeshStandardMaterial({
+                color: 0x888888,
+                roughness: 0.5,
+                metalness: 0.7
             });
+            const radar = new THREE.Mesh(radarGeometry, radarMaterial);
+            radar.position.set(-5, 3, 0);
+            radar.rotation.x = Math.PI / 2;
+            ship.add(radar);
             
-            const mandibleLeft = new THREE.Mesh(mandibleGeometry, mandibleMaterial);
-            mandibleLeft.position.set(0, 0, -1.5);
-            shipGroup.add(mandibleLeft);
-            
-            const mandibleRight = new THREE.Mesh(mandibleGeometry, mandibleMaterial);
-            mandibleRight.position.set(0, 0, 1.5);
-            shipGroup.add(mandibleRight);
-            
-            // Détails sur le dessus du disque
-            const detailsGeometry = new THREE.BoxGeometry(0.5, 0.3, 1);
-            const detailsMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x777777, 
-                shininess: 30 
-            });
-            
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2;
-                const radius = 1.5;
-                
-                const detailPiece = new THREE.Mesh(detailsGeometry, detailsMaterial);
-                detailPiece.position.set(
-                    Math.cos(angle) * radius,
-                    0.4,
-                    Math.sin(angle) * radius
+            // Add details - small boxes
+            for (let i = 0; i < 10; i++) {
+                const detailGeometry = new THREE.BoxGeometry(
+                    Math.random() * 2 + 1,
+                    Math.random() * 2 + 0.5,
+                    Math.random() * 2 + 0.5
                 );
-                detailPiece.rotation.y = angle + Math.PI/2;
-                shipGroup.add(detailPiece);
+                const detailMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x999999,
+                    roughness: 0.7,
+                    metalness: 0.3
+                });
+                const detail = new THREE.Mesh(detailGeometry, detailMaterial);
+                
+                // Position details randomly on the ship body
+                const theta = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 8;
+                detail.position.set(
+                    (Math.random() - 0.5) * 10,
+                    Math.sin(theta) * radius * 0.3 + 1,
+                    Math.cos(theta) * radius
+                );
+                
+                ship.add(detail);
             }
             
-            // Propulseur arrière
-            const engineGeometry = new THREE.CylinderGeometry(0.8, 1, 0.5, 8);
-            const engineMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x444444, 
-                shininess: 80 
-            });
-            const engine = new THREE.Mesh(engineGeometry, engineMaterial);
-            engine.position.set(-2.2, 0, 0);
-            engine.rotation.z = Math.PI / 2;
-            shipGroup.add(engine);
+            // Scale the ship down to a reasonable size
+            ship.scale.set(0.5, 0.5, 0.5);
             
-            // Effet de propulsion (lumière)
-            const engineGlow = new THREE.PointLight(0x33aaff, 1, 8);
-            engineGlow.position.set(-3, 0, 0);
-            shipGroup.add(engineGlow);
-            
-            // Antenne parabolique sur le dessus
-            const antennaBaseGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.3, 8);
-            const antennaBase = new THREE.Mesh(antennaBaseGeometry, detailsMaterial);
-            antennaBase.position.set(0, 0.6, 0);
-            shipGroup.add(antennaBase);
-            
-            const antennaGeometry = new THREE.SphereGeometry(0.6, 8, 8, 0, Math.PI);
-            const antenna = new THREE.Mesh(antennaGeometry, cockpitMaterial);
-            antenna.position.set(0, 1, 0);
-            antenna.rotation.x = Math.PI;
-            shipGroup.add(antenna);
-            
-            ship = shipGroup;
-            scene.add(ship);
-            
-            // Position initiale du vaisseau
-            ship.position.copy(PLANETS[0].position);
-            ship.position.y += PLANETS[0].size + 3; // Au-dessus de la planète
-            ship.rotation.y = Math.PI / 2; // Tourné vers l'avant
+            return ship;
         }
-        
-        // Création des planètes avec designs améliorés
-        function createPlanets() {
-            PLANETS.forEach((planetData, index) => {
-                // Groupe pour la planète et ses éléments
-                const planetGroup = new THREE.Group();
+
+        // Create a planet
+        function createPlanet(name, data) {
+            const planetGroup = new THREE.Group();
+            
+            // Main planet geometry
+            const geometry = new THREE.SphereGeometry(data.size, 32, 32);
+            
+            // Create a texture with a gradient and some noise
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // Convert hex color to RGB
+            const r = (data.color >> 16) & 255;
+            const g = (data.color >> 8) & 255;
+            const b = data.color & 255;
+            
+            // Create gradient
+            const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+            gradient.addColorStop(0, `rgb(${r + 50}, ${g + 50}, ${b + 50})`);
+            gradient.addColorStop(0.7, `rgb(${r}, ${g}, ${b})`);
+            gradient.addColorStop(1, `rgb(${r - 50}, ${g - 50}, ${b - 50})`);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // Add some noise for texture
+            ctx.globalCompositeOperation = 'overlay';
+            for (let i = 0; i < 5000; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const size = Math.random() * 2 + 0.5;
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.2})`;
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            
+            // Planet material with glow effect
+            const material = new THREE.MeshStandardMaterial({
+                map: texture,
+                roughness: 0.7,
+                metalness: 0.3
+            });
+            
+            const planet = new THREE.Mesh(geometry, material);
+            planetGroup.add(planet);
+            
+            // Add glow effect
+            const glowGeometry = new THREE.SphereGeometry(data.size * 1.2, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: data.color,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.BackSide
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            planetGroup.add(glow);
+            
+            // If it's not the start base, add some moons
+            if (name !== 'Start Base') {
+                const moonCount = Math.floor(Math.random() * 3) + 1;
                 
-                // Géométrie de la planète de base
-                const planetGeometry = new THREE.SphereGeometry(planetData.size, 64, 64);
-                
-                // Personnalisation selon le type de planète
-                if (index === 0) { // Base Stellaire (station spatiale)
-                    // Corps central
-                    const centerGeometry = new THREE.SphereGeometry(planetData.size * 0.4, 32, 32);
-                    const centerMaterial = new THREE.MeshPhongMaterial({
-                        color: 0x888888,
-                        shininess: 100,
-                        emissive: 0x222222
-                    });
-                    const center = new THREE.Mesh(centerGeometry, centerMaterial);
-                    planetGroup.add(center);
-                    
-                    // Anneaux
-                    const ringGeometry = new THREE.TorusGeometry(planetData.size * 0.7, planetData.size * 0.08, 16, 100);
-                    const ringMaterial = new THREE.MeshPhongMaterial({
+                for (let i = 0; i < moonCount; i++) {
+                    const moonSize = data.size * (Math.random() * 0.15 + 0.05);
+                    const moonGeometry = new THREE.SphereGeometry(moonSize, 16, 16);
+                    const moonMaterial = new THREE.MeshStandardMaterial({
                         color: 0xaaaaaa,
-                        shininess: 80,
-                        emissive: 0x111111
+                        roughness: 0.8,
+                        metalness: 0.2
                     });
-                    const ring1 = new THREE.Mesh(ringGeometry, ringMaterial);
-                    ring1.rotation.x = Math.PI / 2;
-                    planetGroup.add(ring1);
+                    const moon = new THREE.Mesh(moonGeometry, moonMaterial);
                     
-                    const ring2 = new THREE.Mesh(ringGeometry, ringMaterial);
-                    ring2.rotation.x = Math.PI / 4;
-                    ring2.rotation.z = Math.PI / 4;
-                    planetGroup.add(ring2);
+                    // Position moon in orbit
+                    const theta = Math.random() * Math.PI * 2;
+                    const orbitRadius = data.size * (Math.random() * 0.7 + 1.5);
+                    moon.position.set(
+                        Math.sin(theta) * orbitRadius,
+                        (Math.random() - 0.5) * orbitRadius * 0.5,
+                        Math.cos(theta) * orbitRadius
+                    );
                     
-                    // Lumières de la station
-                    for (let i = 0; i < 12; i++) {
-                        const angle = (i / 12) * Math.PI * 2;
-                        
-                        // Sur le corps central
-                        const light = new THREE.PointLight(0x3399ff, 0.5, planetData.size * 2);
-                        light.position.set(
-                            Math.cos(angle) * planetData.size * 0.4,
-                            Math.sin(angle) * planetData.size * 0.4,
-                            0
-                        );
-                        planetGroup.add(light);
-                        
-                        // Sur les anneaux
-                        const lightRing = new THREE.PointLight(0xffaa00, 0.3, planetData.size);
-                        lightRing.position.set(
-                            Math.cos(angle) * planetData.size * 0.7,
-                            0,
-                            Math.sin(angle) * planetData.size * 0.7
-                        );
-                        planetGroup.add(lightRing);
-                    }
-                } 
-                else if (index === 1) { // Néonova (rose fluo)
-                    const planetMaterial = new THREE.MeshPhongMaterial({
-                        color: planetData.color,
-                        shininess: 150,
-                        emissive: new THREE.Color(planetData.color).multiplyScalar(0.4),
-                    });
-                    const planet = new THREE.Mesh(planetGeometry, planetMaterial);
-                    planetGroup.add(planet);
-                    
-                    // Atmosphère lumineuse
-                    const atmosphereGeo = new THREE.SphereGeometry(planetData.size * 1.2, 32, 32);
-                    const atmosphereMat = new THREE.MeshBasicMaterial({
-                        color: planetData.color,
-                        transparent: true,
-                        opacity: 0.15
-                    });
-                    const atmosphere = new THREE.Mesh(atmosphereGeo, atmosphereMat);
-                    planetGroup.add(atmosphere);
-                    
-                    // Rayons lumineux
-                    for (let i = 0; i < 8; i++) {
-                        const angle = (i / 8) * Math.PI * 2;
-                        const light = new THREE.PointLight(planetData.color, 1, planetData.size * 3);
-                        light.position.set(
-                            Math.cos(angle) * planetData.size * 1.3,
-                            Math.sin(angle) * planetData.size * 1.3,
-                            0
-                        );
-                        planetGroup.add(light);
-                    }
+                    planetGroup.add(moon);
                 }
-                else if (index === 2) { // Azuron (bleu glacé)
-                    const planetMaterial = new THREE.MeshPhongMaterial({
-                        color: planetData.color,
-                        shininess: 200,
-                        emissive: new THREE.Color(planetData.color).multiplyScalar(0.2)
+            }
+            
+            // For the start base, create a space station
+            if (name === 'Start Base') {
+                // Central hub
+                const hubGeometry = new THREE.SphereGeometry(5, 16, 16);
+                const hubMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xaaaaaa,
+                    roughness: 0.6,
+                    metalness: 0.7
+                });
+                const hub = new THREE.Mesh(hubGeometry, hubMaterial);
+                planetGroup.add(hub);
+                
+                // Spokes/arms extending out
+                for (let i = 0; i < 4; i++) {
+                    const armGeometry = new THREE.CylinderGeometry(1, 1, 20, 8);
+                    const armMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x888888,
+                        roughness: 0.7,
+                        metalness: 0.5
                     });
-                    const planet = new THREE.Mesh(planetGeometry, planetMaterial);
-                    planetGroup.add(planet);
+                    const arm = new THREE.Mesh(armGeometry, armMaterial);
                     
-                    // Anneaux glacés
-                    const iceRingGeometry = new THREE.TorusGeometry(planetData.size * 1.8, planetData.size * 0.15, 2, 64);
-                    const iceRingMaterial = new THREE.MeshPhongMaterial({
-                        color: 0xaaffff,
-                        shininess: 150,
-                        transparent: true,
-                        opacity: 0.6
+                    arm.position.set(0, 0, 0);
+                    arm.rotation.z = Math.PI / 2;
+                    arm.rotation.y = (Math.PI / 2) * i;
+                    
+                    planetGroup.add(arm);
+                    
+                    // Add modules to the ends of arms
+                    const moduleGeometry = new THREE.BoxGeometry(8, 4, 4);
+                    const moduleMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x666666,
+                        roughness: 0.6,
+                        metalness: 0.6
                     });
-                    const iceRing = new THREE.Mesh(iceRingGeometry, iceRingMaterial);
-                    iceRing.rotation.x = Math.PI / 3;
-                    planetGroup.add(iceRing);
+                    const module = new THREE.Mesh(moduleGeometry, moduleMaterial);
                     
-                    // Lumière centrale
-                    const coreLight = new THREE.PointLight(planetData.color, 1, planetData.size * 4);
-                    planetGroup.add(coreLight);
+                    // Position at the end of arm
+                    module.position.set(13, 0, 0);
+                    module.rotation.y = (Math.PI / 2) * i;
+                    
+                    planetGroup.add(module);
                 }
-                else if (index === 3) { // Viridia (vert)
-                    const planetMaterial = new THREE.MeshPhongMaterial({
-                        color: planetData.color,
-                        shininess: 50,
-                        emissive: new THREE.Color(planetData.color).multiplyScalar(0.1)
+                
+                // Landing pad
+                const padGeometry = new THREE.CylinderGeometry(8, 8, 1, 16);
+                const padMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x444444,
+                    roughness: 0.8,
+                    metalness: 0.3
+                });
+                const pad = new THREE.Mesh(padGeometry, padMaterial);
+                pad.position.set(0, -7, 0);
+                planetGroup.add(pad);
+                
+                // Lights around the landing pad
+                for (let i = 0; i < 8; i++) {
+                    const lightGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+                    const lightMaterial = new THREE.MeshBasicMaterial({
+                        color: 0xffaa00
                     });
-                    const planet = new THREE.Mesh(planetGeometry, planetMaterial);
-                    planetGroup.add(planet);
+                    const light = new THREE.Mesh(lightGeometry, lightMaterial);
                     
-                    // Atmosphère brumeuse
-                    const atmGeo = new THREE.SphereGeometry(planetData.size * 1.1, 32, 32);
-                    const atmMat = new THREE
+                    const theta = (Math.PI * 2 / 8) * i;
+                    light.position.set(
+                        Math.sin(theta) * 7.5,
+                        -6.5,
+                        Math.cos(theta) * 7.5
+                    );
+                    
+                    planetGroup.add(light);
+                }
+            }
+            
+            // Name label (for debugging)
+            /*
+            const textCanvas = document.createElement('canvas');
+            textCanvas.width = 256;
+            textCanvas.height = 64;
+            const textCtx = textCanvas.getContext('2d');
+            textCtx.fillStyle = '#ffffff';
+            textCtx.font = '24px Arial';
+            textCtx.textAlign = 'center';
+            textCtx.fillText(name, 128, 40);
+            
+            const textTexture = new THREE.CanvasTexture(textCanvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: textTexture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.set(0, data.size + 10, 0);
+            sprite.scale.set(20, 5, 1);
+            planetGroup.add(sprite);
+            */
+            
+            // Position the planet
+            planetGroup.position.set(data.position.x, data.position.y, data.position.z);
+            
+            // Add slight rotation
+            planetGroup.rotation.set(
+                Math.random() * 0.2,
+                Math.random() * 0.2,
+                Math.random() * 0.2
+            );
+            
+            scene.add(planetGroup);
+            
+            return {
+                object: planetGroup,
+                position: data.position,
+                size: data.size
+            };
+        }
+
+        // Create all planets
+        function createPlanets() {
+            for (const [name, data] of Object.entries(planetData)) {
+                planets[name] = createPlanet(name, data);
+            }
+        }
+
+        // Initialize the game
+        function initializeGame() {
+            calculateDistances();
+            optimalPath = findOptimalPath();
+            createStars();
+            createDebris();
+            createPirateShips();
+            createPlanets();
+            
+            // Set up camera and controls
+            camera.position.set(0, 50, 100);
+            camera.lookAt(0, 0, 0);
+            
+            // Create player ship
+            playerShip = createPlayerShip();
+            playerShip.position.copy(planets['Start Base'].position);
+            playerShip.position.y += 15; // Position above the start base
+            scene.add(playerShip);
+            
+            // Add animation for the ship
+            playerShip.userData = {
+                animating: false,
+                startPosition: new THREE.Vector3(),
+                targetPosition: new THREE.Vector3(),
+                animationProgress: 0,
+                animationDuration: 3 // seconds
+            };
+            
+            // Update UI
+            updatePathOptions();
+            
+            // Start animation loop
+            animate();
+        }
+
+        // Update path options in UI
+        function updatePathOptions() {
+            const pathOptionsDiv = document.getElementById('pathOptions');
+            pathOptionsDiv.innerHTML = '<h3>Available Routes:</h3>';
+            
+            // Get all possible destinations
+            const destinations = Object.keys(planetData).filter(name => {
+                // Can't go to current planet or already visited planets
+                if (name === currentPlanet || (name !== 'Start Base' && visitedPlanets.has(name))) {
+                    return false;
+                }
+                
+                // Can only return to Start Base after visiting all planets
+                if (name === 'Start Base' && visitedPlanets.size < TOTAL_PLANETS) {
+                    return false;
+                }
+                
+                // Check if path has been used
+                const pathKey = `${currentPlanet}-${name}`;
+                if (usedPaths.has(pathKey)) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // End game if no more destinations
+            if (destinations.length === 0 && visitedPlanets.size < TOTAL_PLANETS) {
+                endGame(false);
+                return;
+            }
+            
+            // Create buttons for each destination
+            for (const dest of destinations) {
+                const fuelCost = distances[currentPlanet][dest];
+                const button = document.createElement('button');
+                button.textContent = `${dest} (Fuel: ${fuelCost})`;
+                button.disabled = fuelCost > currentFuel;
+                
+                button.addEventListener('click', () => {
+                    if (gameActive) {
+                        travel(dest);
+                    }
+                });
+                
+                pathOptionsDiv.appendChild(button);
+            }
+        }
+
+        // Travel to a new planet
+        function travel(destination) {
+            // Mark path as used
+            const pathKey = `${currentPlanet}-${destination}`;
+            usedPaths.add(pathKey);
+            
+            // Update fuel
+            const fuelCost = distances[currentPlanet][destination];
+            currentFuel -= fuelCost;
+            document.getElementById('fuelDisplay').textContent = `Fuel Remaining: ${currentFuel}`;
+            
+            // If not the start base, add to visited planets
+            if (destination !== 'Start Base') {
+                visitedPlanets.add(destination);
+                document.getElementById('visitedPlanets').textContent = `Planets Visited: ${visitedPlanets.size}/${TOTAL_PLANETS}`;
+            }
+            
+            // Update current position
+            currentPlanet = destination;
+            document.getElementById('currentPosition').textContent = `Current: ${currentPlanet}`;
+            
+            // Check if game is complete
+            if (destination === 'Start Base' && visitedPlanets.size === TOTAL_PLANETS) {
+                endGame(true);
+                return;
+            }
+            
+            // Check if out of fuel
+            if (currentFuel <= 0) {
+                endGame(false);
+                return;
+            }
+            
+            // Animate ship movement
+            animateShipMovement(planets[destination].position);
+            
+            // Update path options
+            updatePathOptions();
+        }
+
+        // Animate ship movement
+        function animateShipMovement(targetPosition) {
+            const shipData = playerShip.userData;
+            shipData.animating = true;
+            shipData.startPosition.copy(playerShip.position);
+            
+            // Set target position slightly above the planet
+            shipData.targetPosition.copy(targetPosition);
+            shipData.targetPosition.y += planets[currentPlanet].size + 10;
+            
+            shipData.animationProgress = 0;
+        }
+
+        // End the game
+        function endGame(success) {
+            gameActive = false;
+            
+            const gameOverDiv = document.getElementById('gameOver');
+            const resultsDiv = document.getElementById('results');
+            
+            gameOverDiv.style.display = 'block';
+            
+            if (success) {
+                document.querySelector('#gameOver h2').textContent = 'Mission Complete!';
+                
+                // Calculate fuel usage
+                const fuelUsed = START_FUEL - currentFuel;
+                document.getElementById('playerFuel').textContent = fuelUsed;
+                document.getElementById('optimalFuel').textContent = optimalPath.fuel;
+                
+                // Calculate efficiency percentage
+                const efficiency = Math.round((optimalPath.fuel / fuelUsed) * 100);
+                document.getElementById('efficiency').textContent = `${efficiency}%`;
+                
+                // Add information about the optimal path
+                const optimalPathInfo = document.createElement('p');
+                optimalPathInfo.textContent = `Optimal path: ${optimalPath.path.join(' → ')}`;
+                resultsDiv.appendChild(optimalPathInfo);
+            } else {
+                document.querySelector('#gameOver h2').textContent = 'Mission Failed!';
+                
+                let failureReason;
+                if (currentFuel <= 0) {
+                    failureReason = 'You ran out of fuel!';
+                } else {
+                    failureReason = 'No valid paths remaining to complete the mission!';
+                }
+                
+                const reasonElement = document.createElement('p');
+                reasonElement.textContent = failureReason;
+                resultsDiv.appendChild(reasonElement);
+            }
+        }
+
+        // Reset game
+        function resetGame() {
+            // Reset game variables
+            currentFuel = START_FUEL;
+            currentPlanet = 'Start Base';
+            visitedPlanets = new Set();
+            usedPaths = new Set();
+            gameActive = true;
+            
+            // Reset UI
+            document.getElementById('fuelDisplay').textContent = `Fuel Remaining: ${currentFuel}`;
+            document.getElementById('currentPosition').textContent = `Current: ${currentPlanet}`;
+            document.getElementById('visitedPlanets').textContent = `Planets Visited: 0/${TOTAL_PLANETS}`;
+            document.getElementById('gameOver').style.display = 'none';
+            
+            // Reset ship position
+            playerShip.position.copy(planets['Start Base'].position);
+            playerShip.position.y += 15;
+            
+            // Reset ship rotation
+            playerShip.rotation.set(0, 0, 0);
+            
+            // Update path options
+            updatePathOptions();
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update ship animation if in progress
+            if (playerShip.userData.animating) {
+                const shipData = playerShip.userData;
+                shipData.animationProgress += 0.01;
+                
+                if (shipData.animationProgress >= 1) {
+                    // Animation complete
+                    shipData.animating = false;
+                    playerShip.position.copy(shipData.targetPosition);
+                } else {
+                    // Interpolate position
+                    playerShip.position.lerpVectors(
+                        shipData.startPosition,
+                        shipData.targetPosition,
+                        shipData.animationProgress
+                    );
+                    
+                    // Calculate direction for ship to face
+                    const direction = new THREE.Vector3().subVectors(
+                        shipData.targetPosition,
+                        shipData.startPosition
+                    ).normalize();
+                    
+                    // Orient ship to face direction of travel
+                    const targetQuaternion = new THREE.Quaternion().setFromUnitVectors(
+                        new THREE.Vector3(1, 0, 0), // Ship's forward direction is along x-axis
+                        direction
+                    );
+                    
+                    playerShip.quaternion.slerp(targetQuaternion, 0.1);
+                }
+            }
+            
+            // Rotate planets gently
+            for (const planetName in planets) {
+                const planetObj = planets[planetName].object;
+                planetObj.rotation.y += 0.001;
+            }
+            
+            // Handle window resizing
+            if (renderer.domElement.width !== window.innerWidth || 
+                renderer.domElement.height !== window.innerHeight) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Add event listener for restart button
+        document.getElementById('restartButton').addEventListener('click', resetGame);
+
+        // Initialize the game
+        initializeGame();
+    </script>
+</body>
+</html>
