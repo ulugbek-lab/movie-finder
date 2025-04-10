@@ -201,9 +201,16 @@
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
+        
+        // Define playerShip early
+        let playerShip;
 
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('gameContainer').appendChild(renderer.domElement);
+        
+        // Camera parameters for third-person view
+        const cameraOffset = new THREE.Vector3(-30, 15, 0); // Position behind and slightly above ship
+        let cameraTarget = new THREE.Vector3(); // What the camera looks at
 
         // Lighting
         const ambientLight = new THREE.AmbientLight(0x333333);
@@ -418,6 +425,9 @@
             
             // Scale the ship down to a reasonable size
             ship.scale.set(0.5, 0.5, 0.5);
+            
+            // Define the world-space "forward" direction for the ship
+            ship.userData.forward = new THREE.Vector3(1, 0, 0);
             
             return ship;
         }
@@ -637,7 +647,7 @@
             createPirateShips();
             createPlanets();
             
-            // Set up camera and controls
+            // Set up initial camera position (before updating with ship position)
             camera.position.set(0, 50, 100);
             camera.lookAt(0, 0, 0);
             
@@ -646,6 +656,9 @@
             playerShip.position.copy(planets['Start Base'].position);
             playerShip.position.y += 15; // Position above the start base
             scene.add(playerShip);
+            
+            // Now update camera to follow ship
+            updateCameraPosition();
             
             // Add animation for the ship
             playerShip.userData = {
@@ -832,6 +845,26 @@
             updatePathOptions();
         }
 
+        // Update camera position to follow the ship
+        function updateCameraPosition() {
+            if (!playerShip) return; // Guard clause if playerShip is not yet defined
+            
+            // Create a rotated offset based on ship's orientation
+            const rotatedOffset = cameraOffset.clone();
+            rotatedOffset.applyQuaternion(playerShip.quaternion);
+            
+            // Position camera relative to ship
+            camera.position.copy(playerShip.position).add(rotatedOffset);
+            
+            // Calculate target position (slightly ahead of ship)
+            cameraTarget.copy(playerShip.position);
+            const forward = new THREE.Vector3(1, 0, 0).applyQuaternion(playerShip.quaternion);
+            cameraTarget.add(forward.multiplyScalar(20));
+            
+            // Look at the target
+            camera.lookAt(cameraTarget);
+        }
+
         // Animation loop
         function animate() {
             requestAnimationFrame(animate);
@@ -867,6 +900,9 @@
                     
                     playerShip.quaternion.slerp(targetQuaternion, 0.1);
                 }
+                
+                // Update camera to follow ship in third-person view
+                updateCameraPosition();
             }
             
             // Rotate planets gently
