@@ -32,13 +32,37 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            width: 250px;
-            height: 250px;
+            width: 300px;
+            height: 300px;
             background-color: rgba(0, 0, 0, 0.7);
             border-radius: 5px;
             z-index: 10;
             border: 1px solid #3498db;
             overflow: hidden;
+        }
+        
+        #minimapTitle {
+            position: absolute;
+            top: 5px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 11;
+            text-shadow: 1px 1px 2px black;
+        }
+        
+        #minimapInfo {
+            position: absolute;
+            bottom: 5px;
+            left: 10px;
+            color: white;
+            font-size: 12px;
+            z-index: 11;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            border-radius: 3px;
+            max-width: 280px;
         }
         #fuelDisplay {
             font-size: 18px;
@@ -112,7 +136,10 @@
                 <button id="restartGame">Restart Game</button>
             </div>
         </div>
-        <div id="minimap"></div>
+        <div id="minimap">
+            <div id="minimapTitle">Navigation Map</div>
+            <div id="minimapInfo">Click on a planet to travel there. Lines show fuel costs between planets.</div>
+        </div>
         <div id="gameOver">
             <h2>Mission Complete!</h2>
             <div id="results">
@@ -705,21 +732,39 @@
             const planet = new THREE.Mesh(geometry, material);
             planetGroup.add(planet);
             
-            // Label for the planet
+            // Create a more visible label for the planet
             const textCanvas = document.createElement('canvas');
             textCanvas.width = 128;
-            textCanvas.height = 32;
+            textCanvas.height = 48;
             const textCtx = textCanvas.getContext('2d');
+            
+            // Background for better readability
+            textCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            textCtx.fillRect(0, 0, 128, 48);
+            textCtx.strokeStyle = '#ffffff';
+            textCtx.lineWidth = 1;
+            textCtx.strokeRect(0, 0, 128, 48);
+            
+            // Planet name text
             textCtx.fillStyle = '#ffffff';
-            textCtx.font = '12px Arial';
+            textCtx.font = 'bold 14px Arial';
             textCtx.textAlign = 'center';
-            textCtx.fillText(name, 64, 20);
+            textCtx.fillText(name, 64, 18);
+            
+            // Calculate and display fuel costs from other planets
+            if (name !== 'Start Base') {
+                textCtx.font = '10px Arial';
+                textCtx.fillText(`Fuel from Base: ${distances['Start Base'][name]}`, 64, 34);
+            } else {
+                textCtx.font = '10px Arial';
+                textCtx.fillText('Starting Point', 64, 34);
+            }
             
             const textTexture = new THREE.CanvasTexture(textCanvas);
             const spriteMaterial = new THREE.SpriteMaterial({ map: textTexture });
             const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.position.set(0, data.size / 2 + 5, 0);
-            sprite.scale.set(10, 3, 1);
+            sprite.position.set(0, data.size / 2 + 8, 0);
+            sprite.scale.set(15, 7, 1);
             planetGroup.add(sprite);
             
             // Position the minimap planet
@@ -747,7 +792,7 @@
         }
         
         // Create a travel trail
-        function createTrail(startPos, endPos, color = 0x3498db) {
+        function createTrail(startPos, endPos, fromPlanet, toPlanet, color = 0x3498db) {
             // Create a curve between the two points
             const curve = new THREE.LineCurve3(
                 new THREE.Vector3(startPos.x, startPos.y, startPos.z),
@@ -780,9 +825,111 @@
             minimapScene.add(minimapLine);
             minimapTrails.push(minimapLine);
             
-            return { mainLine: line, minimapLine: minimapLine };
+            // Add a fuel usage label to the minimap trail
+            const fuelCost = distances[fromPlanet][toPlanet];
+            const midPoint = new THREE.Vector3().addVectors(
+                new THREE.Vector3(startPos.x, startPos.y, startPos.z),
+                new THREE.Vector3(endPos.x, endPos.y, endPos.z)
+            ).multiplyScalar(0.5);
+            
+            const textCanvas = document.createElement('canvas');
+            textCanvas.width = 64;
+            textCanvas.height = 24;
+            const textCtx = textCanvas.getContext('2d');
+            
+            // Background for better readability
+            textCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            textCtx.fillRect(0, 0, 64, 24);
+            textCtx.strokeStyle = color === 0x3498db ? '#3498db' : '#ffffff';
+            textCtx.lineWidth = 1;
+            textCtx.strokeRect(0, 0, 64, 24);
+            
+            // Fuel cost text
+            textCtx.fillStyle = '#ffffff';
+            textCtx.font = 'bold 12px Arial';
+            textCtx.textAlign = 'center';
+            textCtx.fillText(`Fuel: ${fuelCost}`, 32, 16);
+            
+            const textTexture = new THREE.CanvasTexture(textCanvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: textTexture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.copy(midPoint);
+            sprite.position.y += 10; // Position above the line
+            sprite.scale.set(10, 5, 1);
+            minimapScene.add(sprite);
+            
+            // Store the sprite so it can be removed if trail is undone
+            minimapTrails.push(sprite);
+            
+            return { mainLine: line, minimapLine: minimapLine, label: sprite };
         }
         
+        // Function to update minimap planet information based on current position
+        function updateMinimapPlanetInfo() {
+            // Remove old labels first
+            for (const name in minimapPlanets) {
+                const planetGroup = minimapPlanets[name].object;
+                
+                // Find and remove old label sprites
+                for (let i = planetGroup.children.length - 1; i >= 0; i--) {
+                    if (planetGroup.children[i].type === 'Sprite') {
+                        planetGroup.remove(planetGroup.children[i]);
+                    }
+                }
+                
+                // Create new updated label
+                const textCanvas = document.createElement('canvas');
+                textCanvas.width = 128;
+                textCanvas.height = 48;
+                const textCtx = textCanvas.getContext('2d');
+                
+                // Background for better readability
+                textCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                textCtx.fillRect(0, 0, 128, 48);
+                textCtx.strokeStyle = '#ffffff';
+                textCtx.lineWidth = 1;
+                textCtx.strokeRect(0, 0, 128, 48);
+                
+                // Planet name
+                textCtx.fillStyle = visitedPlanets.has(name) ? '#55ff55' : '#ffffff';
+                if (name === currentPlanet) {
+                    textCtx.fillStyle = '#ffff00'; // Current planet in yellow
+                }
+                textCtx.font = 'bold 14px Arial';
+                textCtx.textAlign = 'center';
+                textCtx.fillText(name, 64, 18);
+                
+                // Fuel cost from current position
+                if (name !== currentPlanet) {
+                    const fuelCost = distances[currentPlanet][name];
+                    const pathKey = `${currentPlanet}-${name}`;
+                    const isValidDestination = !visitedPlanets.has(name) || 
+                                              (name === 'Start Base' && visitedPlanets.size === TOTAL_PLANETS);
+                    
+                    if (!usedPaths.has(pathKey) && isValidDestination) {
+                        textCtx.fillStyle = fuelCost <= currentFuel ? '#55ff55' : '#ff5555';
+                        textCtx.font = '10px Arial';
+                        textCtx.fillText(`Fuel cost: ${fuelCost}`, 64, 34);
+                    } else {
+                        textCtx.fillStyle = '#888888';
+                        textCtx.font = '10px Arial';
+                        textCtx.fillText(visitedPlanets.has(name) ? 'Already visited' : 'Path unavailable', 64, 34);
+                    }
+                } else {
+                    textCtx.fillStyle = '#ffff00';
+                    textCtx.font = '10px Arial';
+                    textCtx.fillText('Current Position', 64, 34);
+                }
+                
+                const textTexture = new THREE.CanvasTexture(textCanvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ map: textTexture });
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.position.set(0, planetData[name].size / 2 + 8, 0);
+                sprite.scale.set(15, 7, 1);
+                planetGroup.add(sprite);
+            }
+        }
+
         // Initialize the game
         function initializeGame() {
             // Set up the minimap first
@@ -831,6 +978,9 @@
                 animationDuration: 3 // seconds
             };
             
+            // Update planet info on minimap
+            updateMinimapPlanetInfo();
+            
             // Update UI
             updatePathOptions();
             
@@ -847,7 +997,7 @@
             minimapScene = new THREE.Scene();
             minimapCamera = new THREE.PerspectiveCamera(60, 1, 1, 2000);
             minimapRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            minimapRenderer.setSize(250, 250);
+            minimapRenderer.setSize(300, 300);
             minimapContainer.appendChild(minimapRenderer.domElement);
             
             // Position minimap camera to show the entire space
@@ -988,10 +1138,10 @@
             const pathKey = `${currentPlanet}-${destination}`;
             usedPaths.add(pathKey);
             
-            // Draw trail
+            // Draw trail with fuel information
             const startPos = planets[currentPlanet].position;
             const endPos = planets[destination].position;
-            createTrail(startPos, endPos);
+            createTrail(startPos, endPos, currentPlanet, destination);
             
             // Update fuel
             const fuelCost = distances[currentPlanet][destination];
@@ -1025,6 +1175,9 @@
             
             // Update path options
             updatePathOptions();
+            
+            // Update minimap planet info to show costs from current position
+            updateMinimapPlanetInfo();
         }
         
         // Undo last move
@@ -1039,13 +1192,15 @@
             visitedPlanets = new Set(lastMove.visitedBefore);
             usedPaths = new Set(lastMove.usedPathsBefore);
             
-            // Remove the last trail
+            // Remove the last trails (line and label)
             if (shipTrails.length > 0) {
+                // Remove main trail
                 const lastTrail = shipTrails.pop();
                 scene.remove(lastTrail);
                 
-                const lastMinimapTrail = minimapTrails.pop();
-                minimapScene.remove(lastMinimapTrail);
+                // Remove from minimap (line and label)
+                const trailsToRemove = minimapTrails.splice(-2);
+                trailsToRemove.forEach(obj => minimapScene.remove(obj));
             }
             
             // Update UI
@@ -1058,6 +1213,9 @@
             
             // Update path options
             updatePathOptions();
+            
+            // Update minimap planet info
+            updateMinimapPlanetInfo();
         }
 
         // Animate ship movement
@@ -1160,6 +1318,9 @@
             // Reset ship rotation
             playerShip.rotation.set(0, 0, 0);
             minimapShip.rotation.set(0, 0, 0);
+            
+            // Update minimap planet info
+            updateMinimapPlanetInfo();
             
             // Update path options
             updatePathOptions();
