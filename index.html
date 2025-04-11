@@ -28,6 +28,18 @@
             border-radius: 5px;
             max-width: 300px;
         }
+        #minimap {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 250px;
+            height: 250px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
+            z-index: 10;
+            border: 1px solid #3498db;
+            overflow: hidden;
+        }
         #fuelDisplay {
             font-size: 18px;
             margin-bottom: 10px;
@@ -73,6 +85,18 @@
             font-size: 16px;
             padding: 10px 20px;
         }
+        /* Reset buttons */
+        #resetButtons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        #undoLastMove {
+            background-color: #e67e22;
+        }
+        #restartGame {
+            background-color: #c0392b;
+        }
     </style>
 </head>
 <body>
@@ -83,7 +107,12 @@
             <div id="currentPosition">Current: Start Base</div>
             <div id="visitedPlanets">Planets Visited: 0/6</div>
             <div id="pathOptions"></div>
+            <div id="resetButtons">
+                <button id="undoLastMove">Undo Last Move</button>
+                <button id="restartGame">Restart Game</button>
+            </div>
         </div>
+        <div id="minimap"></div>
         <div id="gameOver">
             <h2>Mission Complete!</h2>
             <div id="results">
@@ -96,7 +125,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- NOTE: Using Three.js r128 which doesn't have CapsuleGeometry - we use CylinderGeometry instead -->
     <script>
         // Game variables
         const TOTAL_PLANETS = 6;
@@ -108,16 +136,24 @@
         let gameActive = true;
         let planets = {};
         let optimalPath = null;
+        let travelHistory = []; // Array to store the travel history for undo functionality
+        let shipTrails = []; // Array to store the ship's trail objects
         
-        // Planet data
+        // Minimap variables
+        let minimapScene, minimapCamera, minimapRenderer;
+        let minimapShip;
+        let minimapTrails = []; // For trails in minimap
+        let minimapPlanets = {};
+        
+        // Planet data - Reorganized in hexagon pattern
         const planetData = {
             'Start Base': { color: 0xFFFFFF, size: 15, position: { x: 0, y: 0, z: 0 } },
-            'Neonyx': { color: 0x00FFFF, size: 30, position: { x: -150, y: 30, z: -120 } },
-            'Crimsonova': { color: 0xFF5555, size: 40, position: { x: 200, y: -20, z: 150 } },
-            'Emeraldian': { color: 0x55FF55, size: 25, position: { x: -100, y: 50, z: 200 } },
-            'Aurorion': { color: 0xFF55FF, size: 35, position: { x: 170, y: -40, z: -180 } },
-            'Cobaltrix': { color: 0x5555FF, size: 45, position: { x: -200, y: -30, z: -50 } },
-            'Solarium': { color: 0xFFFF55, size: 50, position: { x: 50, y: 60, z: -220 } }
+            'Neonyx': { color: 0x00FFFF, size: 30, position: { x: -150, y: 30, z: -86.6 } },
+            'Crimsonova': { color: 0xFF5555, size: 40, position: { x: 150, y: -20, z: -86.6 } },
+            'Emeraldian': { color: 0x55FF55, size: 25, position: { x: -150, y: 50, z: 86.6 } },
+            'Aurorion': { color: 0xFF55FF, size: 35, position: { x: 150, y: -40, z: 86.6 } },
+            'Cobaltrix': { color: 0x5555FF, size: 45, position: { x: 0, y: -30, z: -173.2 } },
+            'Solarium': { color: 0xFFFF55, size: 50, position: { x: 0, y: 60, z: 173.2 } }
         };
 
         // Create distances between planets
@@ -240,6 +276,19 @@
             starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
             const stars = new THREE.Points(starsGeometry, starsMaterial);
             scene.add(stars);
+            
+            // Create stars for minimap
+            const minimapStarsGeometry = new THREE.BufferGeometry();
+            const minimapStarsVertices = [];
+            for (let i = 0; i < 500; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                minimapStarsVertices.push(x, y, z);
+            }
+            minimapStarsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(minimapStarsVertices, 3));
+            const minimapStars = new THREE.Points(minimapStarsGeometry, starsMaterial);
+            minimapScene.add(minimapStars);
         }
 
         // Create space debris
@@ -431,6 +480,23 @@
             
             return ship;
         }
+        
+        // Create a simplified ship for the minimap
+        function createMinimapShip() {
+            const ship = new THREE.Group();
+            
+            // Simple ship representation - just a small cone
+            const geometry = new THREE.ConeGeometry(3, 6, 4);
+            const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+            const cone = new THREE.Mesh(geometry, material);
+            cone.rotation.x = Math.PI / 2;
+            ship.add(cone);
+            
+            // Scale the minimap ship
+            ship.scale.set(1, 1, 1);
+            
+            return ship;
+        }
 
         // Create a planet
         function createPlanet(name, data) {
@@ -593,8 +659,7 @@
                 }
             }
             
-            // Name label (for debugging)
-            /*
+            // Name label
             const textCanvas = document.createElement('canvas');
             textCanvas.width = 256;
             textCanvas.height = 64;
@@ -610,7 +675,6 @@
             sprite.position.set(0, data.size + 10, 0);
             sprite.scale.set(20, 5, 1);
             planetGroup.add(sprite);
-            */
             
             // Position the planet
             planetGroup.position.set(data.position.x, data.position.y, data.position.z);
@@ -630,16 +694,100 @@
                 size: data.size
             };
         }
+        
+        // Create simplified minimap planets
+        function createMinimapPlanet(name, data) {
+            const planetGroup = new THREE.Group();
+            
+            // Simple sphere geometry for the planet
+            const geometry = new THREE.SphereGeometry(data.size / 2, 16, 16);
+            const material = new THREE.MeshBasicMaterial({ color: data.color });
+            const planet = new THREE.Mesh(geometry, material);
+            planetGroup.add(planet);
+            
+            // Label for the planet
+            const textCanvas = document.createElement('canvas');
+            textCanvas.width = 128;
+            textCanvas.height = 32;
+            const textCtx = textCanvas.getContext('2d');
+            textCtx.fillStyle = '#ffffff';
+            textCtx.font = '12px Arial';
+            textCtx.textAlign = 'center';
+            textCtx.fillText(name, 64, 20);
+            
+            const textTexture = new THREE.CanvasTexture(textCanvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: textTexture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.set(0, data.size / 2 + 5, 0);
+            sprite.scale.set(10, 3, 1);
+            planetGroup.add(sprite);
+            
+            // Position the minimap planet
+            planetGroup.position.set(data.position.x, data.position.y, data.position.z);
+            
+            // Add to minimap scene
+            minimapScene.add(planetGroup);
+            
+            // Add click detection for minimap planets
+            planetGroup.userData = { name: name }; // Store name for click detection
+            
+            return {
+                object: planetGroup,
+                position: data.position,
+                size: data.size / 2
+            };
+        }
 
         // Create all planets
         function createPlanets() {
             for (const [name, data] of Object.entries(planetData)) {
                 planets[name] = createPlanet(name, data);
+                minimapPlanets[name] = createMinimapPlanet(name, data);
             }
         }
-
+        
+        // Create a travel trail
+        function createTrail(startPos, endPos, color = 0x3498db) {
+            // Create a curve between the two points
+            const curve = new THREE.LineCurve3(
+                new THREE.Vector3(startPos.x, startPos.y, startPos.z),
+                new THREE.Vector3(endPos.x, endPos.y, endPos.z)
+            );
+            
+            const points = curve.getPoints(50);
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            
+            const material = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 3,
+                opacity: 0.7,
+                transparent: true
+            });
+            
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            shipTrails.push(line);
+            
+            // Create the same trail for minimap
+            const minimapMaterial = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 5,
+                opacity: 0.9,
+                transparent: true
+            });
+            
+            const minimapLine = new THREE.Line(geometry, minimapMaterial);
+            minimapScene.add(minimapLine);
+            minimapTrails.push(minimapLine);
+            
+            return { mainLine: line, minimapLine: minimapLine };
+        }
+        
         // Initialize the game
         function initializeGame() {
+            // Set up the minimap first
+            setupMinimap();
+            
             calculateDistances();
             optimalPath = findOptimalPath();
             createStars();
@@ -657,6 +805,12 @@
             playerShip.position.y += 15; // Position above the start base
             scene.add(playerShip);
             
+            // Create minimap ship
+            minimapShip = createMinimapShip();
+            minimapShip.position.copy(planets['Start Base'].position);
+            minimapShip.position.y += 15;
+            minimapScene.add(minimapShip);
+            
             // Now update camera to follow ship
             updateCameraPosition();
             
@@ -669,11 +823,105 @@
                 animationDuration: 3 // seconds
             };
             
+            minimapShip.userData = {
+                animating: false,
+                startPosition: new THREE.Vector3(),
+                targetPosition: new THREE.Vector3(),
+                animationProgress: 0,
+                animationDuration: 3 // seconds
+            };
+            
             // Update UI
             updatePathOptions();
             
             // Start animation loop
             animate();
+        }
+        
+        // Initialize minimap
+        function setupMinimap() {
+            // Create minimap container
+            const minimapContainer = document.getElementById('minimap');
+            
+            // Setup minimap renderer
+            minimapScene = new THREE.Scene();
+            minimapCamera = new THREE.PerspectiveCamera(60, 1, 1, 2000);
+            minimapRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            minimapRenderer.setSize(250, 250);
+            minimapContainer.appendChild(minimapRenderer.domElement);
+            
+            // Position minimap camera to show the entire space
+            minimapCamera.position.set(0, 400, 0);
+            minimapCamera.lookAt(0, 0, 0);
+            
+            // Add minimap lighting
+            const minimapAmbientLight = new THREE.AmbientLight(0x666666);
+            minimapScene.add(minimapAmbientLight);
+            
+            // Add event listener for minimap clicks
+            minimapRenderer.domElement.addEventListener('click', onMinimapClick);
+        }
+        
+        // Handle minimap clicks
+        function onMinimapClick(event) {
+            if (!gameActive) return;
+            
+            // Calculate mouse position in normalized device coordinates (-1 to +1)
+            const rect = minimapRenderer.domElement.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2(x, y);
+            
+            // Update the picking ray with the camera and mouse position
+            raycaster.setFromCamera(mouse, minimapCamera);
+            
+            // Calculate objects intersecting the picking ray
+            const intersects = raycaster.intersectObjects(minimapScene.children, true);
+            
+            // Find the first clicked planet
+            for (let i = 0; i < intersects.length; i++) {
+                // Traverse up to find the group with userData
+                let object = intersects[i].object;
+                while (object && !object.userData.name) {
+                    object = object.parent;
+                }
+                
+                if (object && object.userData.name) {
+                    const planetName = object.userData.name;
+                    
+                    // Check if this is a valid destination
+                    const destinations = Object.keys(planetData).filter(name => {
+                        // Can't go to current planet or already visited planets
+                        if (name === currentPlanet || (name !== 'Start Base' && visitedPlanets.has(name))) {
+                            return false;
+                        }
+                        
+                        // Can only return to Start Base after visiting all planets
+                        if (name === 'Start Base' && visitedPlanets.size < TOTAL_PLANETS) {
+                            return false;
+                        }
+                        
+                        // Check if path has been used
+                        const pathKey = `${currentPlanet}-${name}`;
+                        if (usedPaths.has(pathKey)) {
+                            return false;
+                        }
+                        
+                        return true;
+                    });
+                    
+                    if (destinations.includes(planetName)) {
+                        const fuelCost = distances[currentPlanet][planetName];
+                        if (fuelCost <= currentFuel) {
+                            travel(planetName);
+                        }
+                    }
+                    
+                    break;
+                }
+            }
         }
 
         // Update path options in UI
@@ -727,9 +975,23 @@
 
         // Travel to a new planet
         function travel(destination) {
+            // Save current state for undo
+            travelHistory.push({
+                fromPlanet: currentPlanet,
+                toPlanet: destination,
+                fuelBefore: currentFuel,
+                visitedBefore: new Set(visitedPlanets),
+                usedPathsBefore: new Set(usedPaths)
+            });
+            
             // Mark path as used
             const pathKey = `${currentPlanet}-${destination}`;
             usedPaths.add(pathKey);
+            
+            // Draw trail
+            const startPos = planets[currentPlanet].position;
+            const endPos = planets[destination].position;
+            createTrail(startPos, endPos);
             
             // Update fuel
             const fuelCost = distances[currentPlanet][destination];
@@ -764,6 +1026,39 @@
             // Update path options
             updatePathOptions();
         }
+        
+        // Undo last move
+        function undoLastMove() {
+            if (travelHistory.length === 0 || !gameActive) return;
+            
+            const lastMove = travelHistory.pop();
+            
+            // Restore state
+            currentPlanet = lastMove.fromPlanet;
+            currentFuel = lastMove.fuelBefore;
+            visitedPlanets = new Set(lastMove.visitedBefore);
+            usedPaths = new Set(lastMove.usedPathsBefore);
+            
+            // Remove the last trail
+            if (shipTrails.length > 0) {
+                const lastTrail = shipTrails.pop();
+                scene.remove(lastTrail);
+                
+                const lastMinimapTrail = minimapTrails.pop();
+                minimapScene.remove(lastMinimapTrail);
+            }
+            
+            // Update UI
+            document.getElementById('fuelDisplay').textContent = `Fuel Remaining: ${currentFuel}`;
+            document.getElementById('currentPosition').textContent = `Current: ${currentPlanet}`;
+            document.getElementById('visitedPlanets').textContent = `Planets Visited: ${visitedPlanets.size}/${TOTAL_PLANETS}`;
+            
+            // Move ship back
+            animateShipMovement(planets[currentPlanet].position);
+            
+            // Update path options
+            updatePathOptions();
+        }
 
         // Animate ship movement
         function animateShipMovement(targetPosition) {
@@ -776,6 +1071,14 @@
             shipData.targetPosition.y += planets[currentPlanet].size + 10;
             
             shipData.animationProgress = 0;
+            
+            // Also animate minimap ship
+            const minimapShipData = minimapShip.userData;
+            minimapShipData.animating = true;
+            minimapShipData.startPosition.copy(minimapShip.position);
+            minimapShipData.targetPosition.copy(targetPosition);
+            minimapShipData.targetPosition.y += minimapPlanets[currentPlanet].size + 5;
+            minimapShipData.animationProgress = 0;
         }
 
         // End the game
@@ -821,12 +1124,24 @@
 
         // Reset game
         function resetGame() {
+            // Clear all trails
+            for (const trail of shipTrails) {
+                scene.remove(trail);
+            }
+            shipTrails = [];
+            
+            for (const trail of minimapTrails) {
+                minimapScene.remove(trail);
+            }
+            minimapTrails = [];
+            
             // Reset game variables
             currentFuel = START_FUEL;
             currentPlanet = 'Start Base';
             visitedPlanets = new Set();
             usedPaths = new Set();
             gameActive = true;
+            travelHistory = [];
             
             // Reset UI
             document.getElementById('fuelDisplay').textContent = `Fuel Remaining: ${currentFuel}`;
@@ -838,8 +1153,13 @@
             playerShip.position.copy(planets['Start Base'].position);
             playerShip.position.y += 15;
             
+            // Reset minimap ship position
+            minimapShip.position.copy(planets['Start Base'].position);
+            minimapShip.position.y += 15;
+            
             // Reset ship rotation
             playerShip.rotation.set(0, 0, 0);
+            minimapShip.rotation.set(0, 0, 0);
             
             // Update path options
             updatePathOptions();
@@ -905,6 +1225,39 @@
                 updateCameraPosition();
             }
             
+            // Update minimap ship animation
+            if (minimapShip.userData.animating) {
+                const shipData = minimapShip.userData;
+                shipData.animationProgress += 0.01;
+                
+                if (shipData.animationProgress >= 1) {
+                    // Animation complete
+                    shipData.animating = false;
+                    minimapShip.position.copy(shipData.targetPosition);
+                } else {
+                    // Interpolate position
+                    minimapShip.position.lerpVectors(
+                        shipData.startPosition,
+                        shipData.targetPosition,
+                        shipData.animationProgress
+                    );
+                    
+                    // Calculate direction for ship to face
+                    const direction = new THREE.Vector3().subVectors(
+                        shipData.targetPosition,
+                        shipData.startPosition
+                    ).normalize();
+                    
+                    // Orient ship to face direction of travel
+                    const targetQuaternion = new THREE.Quaternion().setFromUnitVectors(
+                        new THREE.Vector3(1, 0, 0), // Ship's forward direction is along x-axis
+                        direction
+                    );
+                    
+                    minimapShip.quaternion.slerp(targetQuaternion, 0.1);
+                }
+            }
+            
             // Rotate planets gently
             for (const planetName in planets) {
                 const planetObj = planets[planetName].object;
@@ -919,7 +1272,11 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             }
             
+            // Render main scene
             renderer.render(scene, camera);
+            
+            // Render minimap
+            minimapRenderer.render(minimapScene, minimapCamera);
         }
 
         // Handle window resize
@@ -929,8 +1286,10 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Add event listener for restart button
+        // Add event listeners for buttons
         document.getElementById('restartButton').addEventListener('click', resetGame);
+        document.getElementById('undoLastMove').addEventListener('click', undoLastMove);
+        document.getElementById('restartGame').addEventListener('click', resetGame);
 
         // Initialize the game
         initializeGame();
